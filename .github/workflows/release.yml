@@ -1,0 +1,185 @@
+name: Release
+
+# Builds the signed APK and publishes it as a GitHub release, with notes from
+# release-notes/<version>.md, then adds the Linux desktop app's packages (.deb and .rpm) and
+# publishes the server's container image to ghcr.io. Start it from the Actions tab ("Run
+# workflow") with the version, or push a v* tag. The tag is created on the built commit if it
+# doesn't exist yet.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, e.g. v0.1.0 (must match versionName in android/build.gradle.kts)
+        required: true
+      commit:
+        description: Commit to build (defaults to the selected branch's latest commit)
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+
+      - name: Check version
+        run: |
+          VERSION_NAME=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' android/build.gradle.kts)
+          if [ "v$VERSION_NAME" != "$TAG" ]; then
+            echo "::error::$TAG doesn't match versionName $VERSION_NAME in android/build.gradle.kts"
+            exit 1
+          fi
+          DESKTOP_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' desktop/Cargo.toml | head -1)
+          if [ "v$DESKTOP_VERSION" != "$TAG" ]; then
+            echo "::error::$TAG doesn't match the desktop app's version $DESKTOP_VERSION in desktop/Cargo.toml"
+            exit 1
+          fi
+          echo "COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Add RELEASE_KEYSTORE_BASE64 and RELEASE_KEYSTORE_PASSWORD under Settings > Secrets and variables > Actions > Repository secrets (see CLAUDE.md)"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | tr -d ' \n\r' | base64 -d > "$RUNNER_TEMP/release.jks"
+          if ! keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" >/dev/null 2>&1; then
+            echo "::error::The keystore couldn't be opened: check that RELEASE_KEYSTORE_BASE64 was pasted completely and the password matches"
+            exit 1
+          fi
+          echo "RELEASE_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Tests (the app and the server)
+        run: ./gradlew --no-daemon :android:testDebugUnitTest :server:test
+
+      - name: Build the signed APK
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon :android:assembleRelease
+          cp android/build/outputs/apk/release/android-release.apk "SuperAwesomeMagicalEmail-$TAG.apk"
+          sha256sum SuperAwesomeMagicalEmail-*.apk
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --depth=1 origin "${{ github.sha }}"
+          git show "${{ github.sha }}:release-notes/$TAG.md" > notes.md 2>/dev/null || echo "SuperAwesomeMagicalEmail $TAG" > notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "SuperAwesomeMagicalEmail-$TAG.apk" --clobber
+          else
+            gh release create "$TAG" "SuperAwesomeMagicalEmail-$TAG.apk" --target "$COMMIT" --title "SuperAwesomeMagicalEmail $TAG" --notes-file notes.md
+          fi
+
+  # The Linux desktop app (desktop/, Rust with GTK 4, libadwaita and WebKitGTK): a .deb for Ubuntu
+  # 24.04 and later and an .rpm for Fedora 40 and later (and SuperAwesomeMagicalLinux), added to
+  # the release. Built on Ubuntu 24.04, the oldest it supports, so it runs on everything newer.
+  desktop:
+    needs: release
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+
+      - name: GTK 4, libadwaita and WebKitGTK to build against
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-4-dev libadwaita-1-dev libwebkitgtk-6.0-dev libssl-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb,cargo-generate-rpm
+
+      - name: Test and build the packages
+        working-directory: desktop
+        run: |
+          cargo test --release --locked
+          cargo build --release --locked
+          cargo deb --no-build
+          cargo generate-rpm
+          mkdir -p ../out
+          cp target/debian/*.deb "../out/SuperAwesomeMagicalEmail-Desktop-$TAG-amd64.deb"
+          cp target/generate-rpm/*.rpm "../out/SuperAwesomeMagicalEmail-Desktop-$TAG-x86_64.rpm"
+          sha256sum ../out/*
+
+      - name: Add them to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" out/SuperAwesomeMagicalEmail-Desktop-* --clobber
+
+  # The server and web app, for amd64 and arm64 (a Raspberry Pi), at
+  # ghcr.io/<owner>/<repository>:<version> and :latest.
+  image:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+
+      - name: Image name and tags
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          VERSION="${TAG#v}"
+          {
+            echo "TAGS<<EOF"
+            echo "$IMAGE:$VERSION"
+            echo "$IMAGE:${VERSION%.*}"
+            echo "$IMAGE:latest"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.TAGS }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Say where it is
+        run: echo "::notice::Published $IMAGE (${TAG#v} and latest). Make the package public (Packages > superawesomemagicalemail > Package settings) so Podman can pull it without signing in."

@@ -1,0 +1,27 @@
+# SuperAwesomeMagicalEmail server: `podman compose up -d` (or `docker compose up -d`).
+# Everything it keeps (accounts, mailbox passwords, sign-ins, its encryption key) is in ./data.
+services:
+  superawesomemagicalemail:
+    image: ghcr.io/603madison/superawesomemagicalemail:latest
+    container_name: superawesomemagicalemail
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8095:8080"
+    volumes:
+      # :Z relabels the folder for SELinux (Fedora, RHEL); harmless elsewhere.
+      - ./data:/data:Z
+    environment:
+      # The address people use, needed for single sign-on behind a reverse proxy.
+      SAME_PUBLIC_URL: https://mail.603norton.org
+      SAME_TRUST_PROXY: "true"
+      # Behind Cloudflare, so each visitor's own address is known:
+      # SAME_CLIENT_IP_HEADER: CF-Connecting-IP
+      # The break-glass admin's first password (otherwise one is generated and logged once).
+      # SAME_ADMIN_PASSWORD: change-me-please
+      # Single sign-on with Authentik, if you'd rather set it here than on the admin page:
+      # SAME_OIDC_ISSUER: https://auth.example.com/application/o/superawesomemagicalemail/
+      # SAME_OIDC_CLIENT_ID: ...
+      # SAME_OIDC_CLIENT_SECRET: ...
+      # SAME_OIDC_USER_GROUP: mail-users
+      # SAME_OIDC_ADMIN_GROUP: mail-admins
+      TZ: America/New_York

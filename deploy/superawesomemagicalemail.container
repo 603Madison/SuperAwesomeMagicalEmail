@@ -1,0 +1,42 @@
+# A Podman Quadlet: the server as a systemd service (it shows in Cockpit's Podman and Services pages).
+#
+#   Rootless: copy to ~/.config/containers/systemd/, then
+#     systemctl --user daemon-reload && systemctl --user start superawesomemagicalemail
+#     loginctl enable-linger $USER     (keeps it running when you're logged out)
+#   System-wide: copy to /etc/containers/systemd/, then
+#     sudo systemctl daemon-reload && sudo systemctl start superawesomemagicalemail
+#
+# The first start logs the break-glass admin's password:
+#   journalctl --user -u superawesomemagicalemail | grep -A3 "break-glass"
+
+[Unit]
+Description=SuperAwesomeMagicalEmail server
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=ghcr.io/603madison/superawesomemagicalemail:latest
+ContainerName=superawesomemagicalemail
+# Only the reverse proxy on this machine reaches it (it's the one serving mail.603norton.org).
+PublishPort=127.0.0.1:8095:8080
+# A named volume: Podman gives it to the container's user. (A folder you made yourself would need
+# UserNS=keep-id:uid=1000,gid=1000 with rootless Podman, and :Z on SELinux systems.)
+Volume=superawesomemagicalemail-data:/data:Z
+Environment=TZ=America/New_York
+Environment=SAME_PUBLIC_URL=https://mail.603norton.org
+Environment=SAME_TRUST_PROXY=true
+# Behind Cloudflare (proxied, or a Tunnel), so each visitor's own address is known:
+# Environment=SAME_CLIENT_IP_HEADER=CF-Connecting-IP
+# Secrets (the Authentik client secret, the admin's first password) are better in a file only you
+# can read, with lines like SAME_OIDC_CLIENT_SECRET=…:
+# EnvironmentFile=%h/.config/superawesomemagicalemail.env
+AutoUpdate=registry
+HealthCmd=wget -qO /dev/null http://127.0.0.1:8080/api/health || exit 1
+HealthInterval=30s
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=default.target
