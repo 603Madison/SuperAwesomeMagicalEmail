@@ -1,0 +1,15 @@
+# SuperAwesomeMagicalEmail, kept running without a window so new mail is announced (Preferences ›
+# New mail › "Keep running in the background" turns its timer on and off).
+[Unit]
+Description=SuperAwesomeMagicalEmail: tell me about new mail
+# Only once the desktop has given the session its display (Hyprland does as it starts).
+ConditionEnvironment=|WAYLAND_DISPLAY
+ConditionEnvironment=|DISPLAY
+ConditionUser=!@system
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/superawesomemagicalemail --background
+# If it stops (or is quit), the timer starts it again a few minutes later, without a window;
+# turning the preference off stops that.
+Restart=no

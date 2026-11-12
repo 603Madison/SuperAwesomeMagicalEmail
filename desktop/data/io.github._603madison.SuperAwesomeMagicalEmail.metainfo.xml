@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github._603madison.SuperAwesomeMagicalEmail</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>SuperAwesomeMagicalEmail</name>
+  <summary>Read and write the mail on your SuperAwesomeMagicalEmail server</summary>
+  <description>
+    <p>
+      Your SuperAwesomeMagicalEmail server on the desktop: every mailbox it gives you (PurelyMail
+      and any other service), together or one at a time, read and written natively.
+    </p>
+    <ul>
+      <li>All your inboxes together, or any account's folders</li>
+      <li>HTML mail shown safely, with images from the web hidden until you ask</li>
+      <li>Replies, forwards, attachments, drafts and signatures</li>
+      <li>Notifications for new mail, even with the window closed</li>
+      <li>Follows SuperAwesomeMagicalLinux's colours</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github._603madison.SuperAwesomeMagicalEmail.desktop</launchable>
+  <url type="homepage">https://github.com/603Madison/SuperAwesomeMagicalEmail</url>
+  <developer id="io.github._603madison">
+    <name>SuperAwesomeMagicalEmail</name>
+  </developer>
+  <content_rating type="oars-1.1" />
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <releases>
+    <release version="0.1.0" date="2026-11-12" />
+  </releases>
+</component>

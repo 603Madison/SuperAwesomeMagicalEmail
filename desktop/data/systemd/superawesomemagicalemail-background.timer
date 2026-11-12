@@ -1,0 +1,12 @@
+# Starts SuperAwesomeMagicalEmail in the background after signing in (and again if it stops),
+# the way SuperAwesomeMagicalLinux runs its own update notifier: a user timer, which works on any
+# desktop, Hyprland included, whether or not it runs the session's autostart entries.
+[Unit]
+Description=Start SuperAwesomeMagicalEmail in the background to tell about new mail
+
+[Timer]
+OnStartupSec=45s
+OnUnitInactiveSec=5min
+
+[Install]
+WantedBy=timers.target

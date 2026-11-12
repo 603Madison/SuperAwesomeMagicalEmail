@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=SuperAwesomeMagicalEmail
+GenericName=Email
+Comment=Read and write the mail on your SuperAwesomeMagicalEmail server
+Exec=superawesomemagicalemail %u
+Icon=io.github._603madison.SuperAwesomeMagicalEmail
+Terminal=false
+Categories=Network;Email;GTK;
+Keywords=mail;email;inbox;purelymail;imap;
+StartupNotify=true
+StartupWMClass=io.github._603madison.SuperAwesomeMagicalEmail
+DBusActivatable=false
+SingleMainWindow=true
+# Signing in through the browser comes back as samemail://signed-in; mailto: links write a message.
+MimeType=x-scheme-handler/samemail;x-scheme-handler/mailto;
+Actions=Write;
+
+[Desktop Action Write]
+Name=Write a message
+Exec=superawesomemagicalemail mailto:
