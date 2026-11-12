@@ -1,0 +1,16 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{20} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- The latest warnings, in memory, for the connector (see RecentLog). -->
+    <appender name="RECENT" class="com.email.server.util.RecentLog"/>
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="RECENT"/>
+    </root>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="io.ktor" level="WARN"/>
+    <logger name="io.ktor.server.Application" level="INFO"/>
+</configuration>
