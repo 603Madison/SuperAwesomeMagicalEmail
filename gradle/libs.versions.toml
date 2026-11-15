@@ -19,12 +19,14 @@ browser = "1.8.0"
 ktor = "3.3.3"
 sqliteJdbc = "3.50.3.0"
 nimbusJoseJwt = "10.5"
-logback = "1.5.20"
+logback = "1.5.38"
 # Mail: Jakarta Mail (Eclipse Angus) for IMAP and SMTP, jsoup to make HTML mail safe to show.
 jakartaMail = "2.1.5"
 angusMail = "2.0.5"
-jsoup = "1.21.2"
+jsoup = "1.23.2"
 greenmail = "2.1.15"
+# Security floors for libraries that come in transitively (Ktor 3.3 brings Netty 4.2.7).
+netty = "4.2.20.Final"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -66,6 +68,7 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbusJoseJwt" }
+netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 jakarta-mail-api = { module = "jakarta.mail:jakarta.mail-api", version.ref = "jakartaMail" }
 angus-mail = { module = "org.eclipse.angus:angus-mail", version.ref = "angusMail" }

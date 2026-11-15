@@ -44,6 +44,8 @@ dependencies {
     implementation(project(":shared"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
+    // Netty with its security fixes, over the older one Ktor asks for.
+    implementation(platform(libs.netty.bom))
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.call.logging)
