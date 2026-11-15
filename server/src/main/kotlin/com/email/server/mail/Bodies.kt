@@ -257,7 +257,7 @@ object BodyReader {
     private fun render(node: Node, out: StringBuilder) {
         when (node) {
             is TextNode -> {
-                val text = if (generateSequence(node.parent()) { it.parent() }.any { (it as? Element)?.normalName() == "pre" }) node.wholeText else node.text()
+                val text = if (generateSequence<Element>(node.parent()) { it.parent() }.any { it.normalName() == "pre" }) node.wholeText else node.text()
                 if (text.isNotEmpty()) {
                     // Collapsed spaces, without doubling them across tags.
                     if (text.startsWith(" ") && (out.isEmpty() || out.last() == ' ' || out.last() == '\n')) out.append(text.trimStart()) else out.append(text)
