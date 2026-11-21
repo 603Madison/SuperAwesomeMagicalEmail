@@ -22,6 +22,7 @@ import java.security.MessageDigest
  * Everything here may take a moment (it asks another app, which may ask its server): call it
  * off the main thread.
  */
+@Suppress("ObsoleteSdkInt", "UseKtx") // the same file in apps with different minimum versions, and nothing but Android itself
 object OrchestratorLink {
     const val PACKAGE = "app.superawesomemagical.orchestrator"
     private val PROVIDER: Uri = Uri.parse("content://$PACKAGE.link")
@@ -107,6 +108,14 @@ object OrchestratorLink {
 
     fun status(context: Context): Status? = call(context, "status", null)?.let {
         Status(it.getBoolean("signedIn"), it.getString("server").orEmpty(), it.getString("username").orEmpty(), it.getString("displayName").orEmpty())
+    }
+
+    /**
+     * The app signed out: what the person agreed to goes with it, so nothing more is said to the
+     * orchestrator ([publishActivity]) and the next sign-in through it is confirmed afresh.
+     */
+    fun forget(context: Context) {
+        prefs(context).edit().remove("agreed").apply()
     }
 
     /** A ticket to sign in to this app's server ([app]: "music", "health", "video", "maps", "email"). */
