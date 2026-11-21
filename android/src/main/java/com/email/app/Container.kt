@@ -9,6 +9,7 @@ import com.email.app.mail.NewMailNotifier
 import com.email.app.mail.NewMailWorker
 import com.email.app.net.ServerApi
 import com.email.app.net.SignIn
+import com.email.app.orchestrator.OrchestratorSignIn
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,9 @@ class Container(val context: Context) {
 
     val signIn = SignIn(context, api, prefs)
 
+    /** Signing in as whoever is signed in to SuperAwesomeMagicalOrchestrator on this phone (sign-in only: nothing else goes to it). */
+    val orchestratorSignIn = OrchestratorSignIn(OrchestratorSignIn.onThisPhone(context), api, prefs)
+
     val mail = MailModel(api, scope)
 
     val notifier = NewMailNotifier(context, api, prefs)
@@ -74,9 +78,10 @@ class Container(val context: Context) {
         }
     }
 
+    /** [callServer]: the person asked to sign out (otherwise the server ended the sign-in, which isn't a choice to stay signed out). */
     suspend fun signOut(callServer: Boolean = true) {
         if (callServer) api.logout()
-        prefs.signOut()
+        prefs.signOut(onPurpose = callServer)
         mail.reset()
     }
 

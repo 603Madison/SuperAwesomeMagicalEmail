@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
         val c = container
         setContent {
             val settings by c.settings.collectAsState()
+            val orchestrator by c.orchestratorSignIn.offer.collectAsState()
             // The status and navigation bars' icons follow the app's theme, which may not be the phone's.
             val dark = isAppInDarkTheme(settings.themeMode)
             LaunchedEffect(dark) {
@@ -50,7 +51,8 @@ class MainActivity : ComponentActivity() {
             }
             EmailTheme(settings.themeMode, settings.wallpaperColors, settings.boldText, settings.palette) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    if (settings.signedIn && !finishing.value) MainScaffold() else SignInScreen(finishing.value, signInError.value)
+                    if (settings.signedIn && !finishing.value && !orchestrator.working) MainScaffold()
+                    else SignInScreen(finishing.value || orchestrator.working, signInError.value)
                 }
             }
         }
@@ -63,7 +65,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        container.inForeground = true
+        val c = container
+        c.inForeground = true
+        // Not signed in: where someone is signed in to SuperAwesomeMagicalOrchestrator on this phone, as them (quietly).
+        if (!c.settings.value.signedIn) c.orchestratorSignIn.opened(c.scope)
     }
 
     override fun onStop() {

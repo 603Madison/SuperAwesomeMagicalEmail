@@ -34,6 +34,11 @@ data class Settings(
     val boldText: Boolean = false,
     /** The colours (unless the wallpaper's are used). */
     val palette: Palette = Palette.AURORA,
+    /**
+     * The person signed out themselves: the app doesn't sign straight back in through
+     * SuperAwesomeMagicalOrchestrator until they sign in again, by any means.
+     */
+    val signedOutOnPurpose: Boolean = false,
 ) {
     val signedIn: Boolean get() = server.isNotEmpty() && token != null
 }
@@ -60,12 +65,15 @@ class Prefs(private val context: Context) {
         it[USER] = ApiJson.encodeToString(User.serializer(), user)
         it[SERVER_NAME] = serverName
         it.remove(NEW_MAIL_CURSOR)
+        it.remove(SIGNED_OUT_ON_PURPOSE)
     }
 
-    suspend fun signOut() = context.store.edit {
+    /** [onPurpose]: the person asked to (rather than the server ending the sign-in). */
+    suspend fun signOut(onPurpose: Boolean = true) = context.store.edit {
         it.remove(TOKEN)
         it.remove(USER)
         it.remove(NEW_MAIL_CURSOR)
+        if (onPurpose) it[SIGNED_OUT_ON_PURPOSE] = true
     }
 
     suspend fun update(transform: (Settings) -> Settings) = context.store.edit { prefs ->
@@ -95,6 +103,7 @@ class Prefs(private val context: Context) {
         wallpaperColors = prefs[WALLPAPER_COLORS] ?: false,
         boldText = prefs[BOLD_TEXT] ?: false,
         palette = Palette.entries.firstOrNull { it.name == prefs[PALETTE] } ?: Palette.AURORA,
+        signedOutOnPurpose = prefs[SIGNED_OUT_ON_PURPOSE] ?: false,
     )
 
     private companion object {
@@ -109,5 +118,6 @@ class Prefs(private val context: Context) {
         val BOLD_TEXT = booleanPreferencesKey("bold_text")
         val PALETTE = stringPreferencesKey("palette")
         val NEW_MAIL_CURSOR = stringPreferencesKey("new_mail_cursor")
+        val SIGNED_OUT_ON_PURPOSE = booleanPreferencesKey("signed_out_on_purpose")
     }
 }

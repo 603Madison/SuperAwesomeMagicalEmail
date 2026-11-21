@@ -105,6 +105,15 @@ class ScreensTest {
     }
 
     @Test
+    fun `sign-in, with someone signed in to the orchestrator on this phone`() {
+        show { SignInScreen(false, null, com.email.app.orchestrator.OrchestratorSignIn.Offer("Continue as Maddie", "at mail.603norton.org")) }
+        compose.onNodeWithText("Continue as Maddie").assertExists()
+        compose.onNodeWithText("at mail.603norton.org").assertExists()
+        compose.onNodeWithText("Server address").assertExists()
+        save("sign-in-orchestrator")
+    }
+
+    @Test
     fun `the mailbox`() = mailbox(ThemeMode.LIGHT, "mailbox")
 
     @Test

@@ -13,6 +13,8 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+        <!-- SuperAwesomeMagicalOrchestrator, to sign in as whoever is signed in there (nothing else is shared with it). -->
+        <package android:name="app.superawesomemagical.orchestrator" />
     </queries>
 
     <!-- Home servers are sometimes plain HTTP on the home network. -->

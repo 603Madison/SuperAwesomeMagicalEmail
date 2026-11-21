@@ -1,5 +1,7 @@
 package com.email.app.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,14 +16,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,13 +49,33 @@ import androidx.compose.ui.unit.dp
 import com.email.app.R
 import com.email.api.AuthConfig
 import com.email.app.net.ServerApi
+import com.email.app.orchestrator.OrchestratorSignIn
 import kotlinx.coroutines.launch
 
-/** Sign-in: the server's address, then single sign-on in a browser tab, or a password. */
+/**
+ * Sign-in: the server's address, then single sign-on in a browser tab, or a password. Above them,
+ * where someone is signed in to SuperAwesomeMagicalOrchestrator on this phone, "Continue as …"
+ * ([orchestratorOffer]: what it shows; null: what the orchestrator on this phone says).
+ */
 @Composable
-fun SignInScreen(finishing: Boolean, error: String?) {
+fun SignInScreen(finishing: Boolean, error: String?, orchestratorOffer: OrchestratorSignIn.Offer? = null) {
     val c = appContainer()
     val scope = rememberCoroutineScope()
+    val live by c.orchestratorSignIn.offer.collectAsState()
+    val orchestrator = orchestratorOffer ?: live
+    // The orchestrator's page asking whether this app may sign in as them: yes, and the app asks again.
+    val approval = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) c.orchestratorSignIn.approved(c.scope)
+    }
+    LaunchedEffect(Unit) {
+        c.orchestratorSignIn.approvals.collect { page ->
+            try {
+                approval.launch(page)
+            } catch (e: android.content.ActivityNotFoundException) {
+                c.orchestratorSignIn.unavailable()
+            }
+        }
+    }
     var address by rememberSaveable { mutableStateOf(c.settings.value.server.removePrefix("https://")) }
     var config by remember { mutableStateOf<Pair<String, AuthConfig>?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -79,6 +106,17 @@ fun SignInScreen(finishing: Boolean, error: String?) {
             CircularProgressIndicator()
             Text("Finishing signing in…")
             return@Column
+        }
+        // Above the usual ways: one tap, as whoever is signed in to the orchestrator here.
+        orchestrator.label?.let { label ->
+            Button(onClick = { c.orchestratorSignIn.tapped(c.scope) }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(18.dp))
+                Column(Modifier.padding(start = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(label, textAlign = TextAlign.Center)
+                    orchestrator.place?.let { Text(it, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center) }
+                }
+            }
+            Text("or", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         val current = config
         if (current == null) {

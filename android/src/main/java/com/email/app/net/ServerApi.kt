@@ -22,6 +22,7 @@ import com.email.api.NewMail
 import com.email.api.Providers
 import com.email.api.SendResult
 import com.email.api.SignatureChange
+import com.email.api.OrchestratorSignIn
 import com.email.api.SignedIn
 import com.email.api.Upload
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,10 @@ class ServerApi(
 
     suspend fun exchangeCode(server: String, code: String, verifier: String, deviceName: String): SignedIn =
         post("$server/api/auth/app/token", ApiJson.encodeToString(AppTokenRequest.serializer(), AppTokenRequest(code, verifier, deviceName)), SignedIn.serializer(), auth = false)
+
+    /** Hands a sign-in ticket from SuperAwesomeMagicalOrchestrator to the server at [server], for the app's own token. */
+    suspend fun orchestratorSignIn(server: String, ticket: String, deviceName: String): SignedIn =
+        post("$server/api/auth/orchestrator", ApiJson.encodeToString(OrchestratorSignIn.serializer(), OrchestratorSignIn(ticket, deviceName)), SignedIn.serializer(), auth = false)
 
     suspend fun logout() = runCatching { post("${base()}/api/auth/logout", "{}", JsonElement.serializer()) }
 
