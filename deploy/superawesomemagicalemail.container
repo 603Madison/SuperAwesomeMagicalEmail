@@ -25,6 +25,8 @@ Volume=superawesomemagicalemail-data:/data:Z
 Environment=TZ=America/New_York
 Environment=SAME_PUBLIC_URL=https://mail.603norton.org
 Environment=SAME_TRUST_PROXY=true
+# SuperAwesomeMagicalOrchestrator, so the apps sign in by themselves on devices signed in there:
+# Environment=SAME_ORCHESTRATOR_URL=https://orchestrator.example.com
 # Behind Cloudflare (proxied, or a Tunnel), so each visitor's own address is known:
 # Environment=SAME_CLIENT_IP_HEADER=CF-Connecting-IP
 # Secrets (the Authentik client secret, the admin's first password) are better in a file only you

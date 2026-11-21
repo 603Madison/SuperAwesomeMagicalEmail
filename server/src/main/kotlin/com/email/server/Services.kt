@@ -3,6 +3,7 @@ package com.email.server
 import com.email.api.Role
 import com.email.server.auth.LoginThrottle
 import com.email.server.auth.OidcClient
+import com.email.server.auth.OrchestratorTickets
 import com.email.server.auth.PendingLogins
 import com.email.server.auth.SessionStore
 import com.email.server.auth.UserStore
@@ -19,6 +20,7 @@ import com.email.server.util.Http
 import com.email.server.util.Passwords
 import com.email.server.util.Random
 import com.email.server.util.SecretBox
+import com.email.server.util.fetchString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +40,8 @@ class Services(
     val http: OkHttpClient = Http.createClient(),
     passwords: Passwords = Passwords(),
     val clock: () -> Long = System::currentTimeMillis,
+    /** How SuperAwesomeMagicalOrchestrator's published keys are fetched (a stand-in in tests); null: with [orchestratorHttp]. */
+    orchestratorFetch: (suspend (url: String) -> String)? = null,
 ) : AutoCloseable {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val users = UserStore(db, passwords, clock)
@@ -46,6 +50,15 @@ class Services(
     val oidc = OidcClient(http, clock)
     val pending = PendingLogins(clock)
     val throttle = LoginThrottle(clock = clock)
+
+    /** Only for the orchestrator's keys, at the address the admin set: no redirects (see [Http.orchestratorClient]). */
+    private val orchestratorHttp: OkHttpClient = Http.orchestratorClient()
+
+    /** Checks SuperAwesomeMagicalOrchestrator's sign-in tickets (its keys: a small answer, 256 KB at most). */
+    val orchestrator = OrchestratorTickets(
+        fetch = orchestratorFetch ?: { url -> orchestratorHttp.fetchString(okhttp3.Request.Builder().url(url).build(), max = 256 * 1024) },
+        clock = clock,
+    )
     val accounts = AccountStore(db, box, clock)
     val connections = MailConnections(config.allowPrivateMailHosts, scope, clock) { id, problem -> accounts.setProblem(id, problem) }
     val links = Links(box, clock)
@@ -108,6 +121,7 @@ class Services(
             settings.update { current ->
                 current.copy(
                     publicUrl = env["SAME_PUBLIC_URL"]?.trimEnd('/') ?: current.publicUrl,
+                    orchestratorUrl = env["SAME_ORCHESTRATOR_URL"]?.trim()?.trimEnd('/') ?: current.orchestratorUrl,
                     localLogin = flag("SAME_LOCAL_LOGIN") ?: current.localLogin,
                     personalAccounts = flag("SAME_PERSONAL_ACCOUNTS") ?: current.personalAccounts,
                     oidc = current.oidc.copy(

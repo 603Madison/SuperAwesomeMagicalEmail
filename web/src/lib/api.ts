@@ -128,5 +128,6 @@ export const api = {
   adminSettings: () => get<AdminSettings>("/api/admin/settings"),
   saveSettings: (settings: ServerSettings, oidcClientSecret?: string) => put<AdminSettings>("/api/admin/settings", { settings, oidcClientSecret }),
   testOidc: (oidc: OidcSettings) => post<{ ok: boolean; message: string }>("/api/admin/oidc/test", oidc),
+  testOrchestrator: (url: string) => post<{ ok: boolean; message: string }>("/api/admin/orchestrator/test", { url }),
   serverLog: (warnings: boolean) => get<string[]>(`/api/admin/log${warnings ? "?warnings=1" : ""}`),
 };

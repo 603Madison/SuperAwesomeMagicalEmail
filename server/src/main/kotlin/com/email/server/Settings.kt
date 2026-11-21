@@ -32,6 +32,11 @@ data class ServerSettings(
     val publicUrl: String = "",
     /** Whether accounts other than the break-glass admin may sign in with a password. */
     val localLogin: Boolean = true,
+    /**
+     * SuperAwesomeMagicalOrchestrator's address, e.g. https://orchestrator.example.com: apps on a
+     * device signed in there sign in here with its tickets. Blank: none of that exists.
+     */
+    val orchestratorUrl: String = "",
     /** Whether people may add their own mail accounts (from other services) besides the ones admins give them. */
     val personalAccounts: Boolean = true,
     val oidc: OidcSettings = OidcSettings(),

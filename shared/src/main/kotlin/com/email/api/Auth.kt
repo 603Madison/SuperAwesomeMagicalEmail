@@ -61,6 +61,8 @@ data class AuthConfig(
     /** Whether the password form is offered (the break-glass admin can always use it). */
     val localLogin: Boolean,
     val oidc: OidcButton? = null,
+    /** Whether apps may sign in with a ticket from SuperAwesomeMagicalOrchestrator (`POST /api/auth/orchestrator`). */
+    val orchestrator: Boolean = false,
 )
 
 @Serializable
@@ -78,6 +80,10 @@ data class AppCodeResponse(val code: String)
 
 @Serializable
 data class AppTokenRequest(val code: String, val verifier: String, val deviceName: String = "")
+
+/** A sign-in ticket from SuperAwesomeMagicalOrchestrator on the same device, handed to this server. */
+@Serializable
+data class OrchestratorSignIn(val ticket: String, val deviceName: String = "")
 
 @Serializable
 data class Me(val user: User, val session: SessionInfo)

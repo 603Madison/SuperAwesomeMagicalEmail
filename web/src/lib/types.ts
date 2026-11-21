@@ -32,7 +32,12 @@ export interface AuthConfig {
   version: string;
   localLogin: boolean;
   oidc?: { label: string } | null;
+  /** Whether apps may sign in with a ticket from SuperAwesomeMagicalOrchestrator. */
+  orchestrator?: boolean;
 }
+
+/** `POST /api/auth/orchestrator`: a ticket from SuperAwesomeMagicalOrchestrator on the same device (the apps send it). */
+export interface OrchestratorSignIn { ticket: string; deviceName?: string }
 
 export type Security = "SSL" | "STARTTLS" | "NONE";
 export interface Endpoint { host: string; port: number; security: Security }
@@ -186,6 +191,8 @@ export interface ServerSettings {
   serverName: string;
   publicUrl: string;
   localLogin: boolean;
+  /** SuperAwesomeMagicalOrchestrator's address; blank: apps don't sign in through it. */
+  orchestratorUrl?: string;
   personalAccounts: boolean;
   oidc: OidcSettings;
 }

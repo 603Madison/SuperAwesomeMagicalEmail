@@ -159,11 +159,44 @@ you sign in with Authentik and approve it; the browser hands the app a one-time 
 (`samemail://signed-in`), which the app swaps (with a secret only it has: PKCE) for its own
 sign-in. **Settings › Signed in on** in the web app lists every device, and signs any of them out.
 
+### Signing in once, with SuperAwesomeMagicalOrchestrator
+
+With [SuperAwesomeMagicalOrchestrator](https://github.com/603Madison/SAM-DeviceOrchestrator) people
+sign in once on a phone or computer, and the Email app there signs in by itself. Set its address
+(**Admin › Server › Orchestrator address**, with **Test**; or `SAME_ORCHESTRATOR_URL`) and list this
+server on the orchestrator as the app `email`, at the address people use. Without an address
+nothing changes (`POST /api/auth/orchestrator` answers 404).
+
+The app asks the orchestrator's agent on the same device for a ticket (a JWT signed with ES256,
+good for two minutes) and posts it: `POST /api/auth/orchestrator` `{ticket, deviceName}` → the user
+and the app's token, as any app sign-in. The server checks it against the keys the orchestrator
+publishes (`<orchestrator>/api/orchestrator/keys`): signature, issuer, audience (this server's
+public address, or the address the request came to), app, dates, and that it hasn't been used
+before. `GET /api/auth/config` says `"orchestrator": true` when tickets are taken. Whose account:
+
+1. The ticket carries the person's subject at the identity provider, and that's this server's own
+   provider (single sign-on is on; same scheme, host and port as its issuer): the account with that
+   subject, by the same rules as single sign-on here (the allowed group, the admin group, a new
+   account if that's on), from the ticket's groups, name and email. Someone an admin added ahead
+   is found by the ticket's username or email and tied to the subject, as at a first sign-in
+   through Authentik.
+2. Otherwise the account with the ticket's username, if it's an ordinary one: not the break-glass
+   admin, not turned off, not tied to an identity provider, and not one still waiting for its
+   first single sign-on (only Authentik's own word hands that over).
+3. Otherwise 401, "That sign-in didn't work here. Sign in the usual way."
+
+Refusals are logged with the reason (Admin › Log) and count against the address like wrong
+passwords. The session is named after the ticket's device. The Android app is asked once, on the
+orchestrator's page, whether Email may sign in as you, and the first time shows the server's
+address under **Continue as …** for a tap; the Linux app asks the agent on the session bus. Only
+sign-in goes through the orchestrator: the apps never tell it what you're reading.
+
 ## Settings
 
 | Variable | Default | |
 | --- | --- | --- |
 | `SAME_PUBLIC_URL` | (from the request) | The address people use, like `https://mail.603norton.org`. Needed behind a proxy for single sign-on. |
+| `SAME_ORCHESTRATOR_URL` | | SuperAwesomeMagicalOrchestrator's address: apps on devices signed in there sign in here by themselves. Blank: nothing changes. |
 | `SAME_TRUST_PROXY` | `false` | Believe the reverse proxy's `X-Forwarded-*` headers. |
 | `SAME_PROXIES` | `1` | How many proxies are in front (to find the visitor's address). |
 | `SAME_CLIENT_IP_HEADER` | | A header holding the visitor's address, like `CF-Connecting-IP`. |

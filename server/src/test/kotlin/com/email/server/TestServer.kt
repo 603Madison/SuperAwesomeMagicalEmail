@@ -42,10 +42,11 @@ fun testServices(
         allowPrivateMailHosts = true,
     ),
     clock: () -> Long = System::currentTimeMillis,
+    orchestratorFetch: (suspend (String) -> String)? = null,
 ): Services {
     val db = Database.inMemory()
     Schema.migrate(db)
-    return Services(config, db, SecretBox(Random.bytes(32)), passwords = Passwords(iterations = 1_000), clock = clock)
+    return Services(config, db, SecretBox(Random.bytes(32)), passwords = Passwords(iterations = 1_000), clock = clock, orchestratorFetch = orchestratorFetch)
 }
 
 fun serverTest(services: Services = testServices(), block: suspend ApplicationTestBuilder.(Services) -> Unit) = testApplication {

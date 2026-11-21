@@ -50,6 +50,19 @@ release workflow. The key made for v0.1.0 has the certificate SHA-256
   `/connect-app`, which hands them a one-time code they swap with their PKCE verifier for their own
   token. People added before they've signed in (no password, no OIDC subject) are claimed on their
   first Authentik sign-in by username or email (`UserStore.claimable`), then tied to the subject.
+- **Signing in through SuperAwesomeMagicalOrchestrator** (`POST /api/auth/orchestrator`, when
+  `ServerSettings.orchestratorUrl` is set; the app id is `email`): `auth/OrchestratorTickets.kt` and
+  the Android app's `orchestrator/OrchestratorLink.kt` are the family's kits, kept in
+  SAM-DeviceOrchestrator (only the package line differs: change them there and copy; its
+  `docs/PROTOCOL.md` is the contract). The account is found by the same rules as single sign-on
+  (`ssoAccount` in `AuthRoutes.kt`, which claims `UserStore.claimable` accounts); without a shared
+  identity provider only an ordinary account's username matches, never one still waiting to be
+  claimed. The keys are fetched with `Http.orchestratorClient` (no redirects, 256 KB at most; the
+  address is the admin's, so home networks are reached, as for Authentik). The Android app follows
+  Health's `OrchestratorSignIn` (a ticket the kit marks `confirm` waits for a tap on the server's
+  address); the Linux app asks the agent over the session bus with gio (`desktop/src/orchestrator.rs`,
+  no `confirm` there, nothing new to install). Both remember a sign-out made on purpose. Only
+  sign-in goes through it: Email never publishes activities (what someone reads is private).
 - **Mailboxes** (`server/.../mail/`): `mail_accounts` (managed: an admin's; or personal) and
   `mail_account_members` (who reads it, with their own signature). Passwords are sealed with
   `SecretBox` (AES-GCM, `secret.key`). One pooled IMAP connection per account

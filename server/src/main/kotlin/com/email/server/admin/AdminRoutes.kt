@@ -11,6 +11,7 @@ import com.email.server.OidcSettings
 import com.email.server.ServerConfig
 import com.email.server.ServerSettings
 import com.email.server.Services
+import com.email.server.auth.OrchestratorTickets
 import com.email.server.auth.redirectUri
 import com.email.server.auth.requireAdmin
 import com.email.server.mail.StoredAccount
@@ -66,6 +67,9 @@ data class SettingsChange(
 
 @Serializable
 data class OidcTest(val ok: Boolean, val message: String)
+
+@Serializable
+data class OrchestratorCheck(val url: String = "")
 
 fun Route.adminRoutes(services: Services) {
     route("/api/admin") {
@@ -214,12 +218,36 @@ fun Route.adminRoutes(services: Services) {
             call.respond(result)
         }
 
+        // Admin › Server's "Test" beside the orchestrator's address: does it answer, and publish keys?
+        post("/orchestrator/test") {
+            call.requireAdmin(services)
+            val url = orchestratorAddress(call.receive<OrchestratorCheck>().url)
+            val result = when {
+                url.isEmpty() -> OidcTest(false, "Enter the orchestrator's address first")
+                else -> try {
+                    OidcTest(true, services.orchestrator.check(url))
+                } catch (e: OrchestratorTickets.Refused) {
+                    OidcTest(false, e.message ?: "No orchestrator answered there")
+                }
+            }
+            call.respond(result)
+        }
+
         // What the server logged lately (mail servers refusing, sign-ins failing), newest last.
         get("/log") {
             call.requireAdmin(services)
             call.respond(RecentLog.latest(call.request.queryParameters["warnings"] == "1").takeLast(500))
         }
     }
+}
+
+/** The orchestrator's address as it's kept: trimmed, no slash at the end, a web address or nothing. */
+private fun orchestratorAddress(raw: String): String {
+    val url = raw.trim().trimEnd('/')
+    if (url.isNotEmpty() && !url.startsWith("https://") && !url.startsWith("http://")) {
+        throw ApiError.badRequest("The orchestrator's address must start with https:// (or http://)")
+    }
+    return url
 }
 
 private suspend fun managed(services: Services, call: ApplicationCall): StoredAccount =
@@ -241,6 +269,7 @@ private fun validated(settings: ServerSettings): ServerSettings {
     if (publicUrl.isNotEmpty() && !publicUrl.startsWith("https://") && !publicUrl.startsWith("http://")) {
         throw ApiError.badRequest("The public address must start with https:// (or http://)")
     }
+    val orchestratorUrl = orchestratorAddress(settings.orchestratorUrl)
     val oidc = settings.oidc
     if (oidc.enabled && (oidc.issuer.isBlank() || oidc.clientId.isBlank())) {
         throw ApiError.badRequest("Single sign-on needs the issuer address and client ID")
@@ -251,6 +280,7 @@ private fun validated(settings: ServerSettings): ServerSettings {
     return settings.copy(
         serverName = settings.serverName.trim().take(80).ifBlank { "SuperAwesomeMagicalEmail" },
         publicUrl = publicUrl,
+        orchestratorUrl = orchestratorUrl,
         oidc = oidc.copy(
             issuer = oidc.issuer.trim(),
             clientId = oidc.clientId.trim(),

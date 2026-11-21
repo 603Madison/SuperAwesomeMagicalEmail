@@ -50,6 +50,7 @@ data class ServerConfig(
 
         val OVERRIDES = setOf(
             "SAME_PUBLIC_URL",
+            "SAME_ORCHESTRATOR_URL",
             "SAME_OIDC_ISSUER",
             "SAME_OIDC_CLIENT_ID",
             "SAME_OIDC_CLIENT_SECRET",

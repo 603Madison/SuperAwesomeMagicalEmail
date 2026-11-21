@@ -272,6 +272,8 @@ function ServerForm({ initial, onSaved }: { initial: AdminSettings; onSaved: (s:
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testingOrchestrator, setTestingOrchestrator] = useState(false);
+  const [orchestratorResult, setOrchestratorResult] = useState<{ ok: boolean; message: string } | null>(null);
   useEffect(() => setSettings(initial.settings), [initial]);
   const env = new Set(initial.fromEnvironment);
   const oidc = settings.oidc;
@@ -297,6 +299,22 @@ function ServerForm({ initial, onSaved }: { initial: AdminSettings; onSaved: (s:
           <Field label="Public address" help={`The address people reach this server at, e.g. https://mail.603norton.org. Needed for single sign-on behind a proxy.${lockedNote("SAME_PUBLIC_URL")}`}>
             <input value={settings.publicUrl} placeholder={window.location.origin} onChange={(e) => setSettings({ ...settings, publicUrl: e.target.value })} />
           </Field>
+          {settings.orchestratorUrl !== undefined && (
+            <>
+              <Field label="Orchestrator address" help={`SuperAwesomeMagicalOrchestrator's address, e.g. https://orchestrator.example.com. People sign in once on a phone or computer, and the Email app there signs in by itself. Blank: nothing changes.${lockedNote("SAME_ORCHESTRATOR_URL")}`}>
+                <div className="field-row">
+                  <input value={settings.orchestratorUrl} placeholder="https://orchestrator.example.com" autoCapitalize="none" spellCheck={false}
+                    onChange={(e) => { setSettings({ ...settings, orchestratorUrl: e.target.value }); setOrchestratorResult(null); }} />
+                  <Button busy={testingOrchestrator} disabled={!settings.orchestratorUrl.trim()} onClick={async () => {
+                    setTestingOrchestrator(true);
+                    try { setOrchestratorResult(await api.testOrchestrator(settings.orchestratorUrl ?? "")); } catch (e) { errorToast(e); }
+                    setTestingOrchestrator(false);
+                  }}>Test</Button>
+                </div>
+              </Field>
+              {orchestratorResult && <div className={`notice ${orchestratorResult.ok ? "notice-ok" : "notice-error"}`}>{orchestratorResult.message}</div>}
+            </>
+          )}
           <Toggle label="People can add their own mail accounts" help={`From other services (Gmail, iCloud…), besides the mailboxes you give them.${lockedNote("SAME_PERSONAL_ACCOUNTS")}`} checked={settings.personalAccounts} onChange={(personalAccounts) => setSettings({ ...settings, personalAccounts })} />
           <Toggle label="People can sign in with a password" help="Off: everyone but the break-glass admin signs in through single sign-on." checked={settings.localLogin} onChange={(localLogin) => setSettings({ ...settings, localLogin })} />
         </div>

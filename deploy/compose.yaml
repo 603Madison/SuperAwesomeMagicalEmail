@@ -14,6 +14,8 @@ services:
       # The address people use, needed for single sign-on behind a reverse proxy.
       SAME_PUBLIC_URL: https://mail.603norton.org
       SAME_TRUST_PROXY: "true"
+      # SuperAwesomeMagicalOrchestrator, so the apps sign in by themselves on devices signed in there:
+      # SAME_ORCHESTRATOR_URL: https://orchestrator.example.com
       # Behind Cloudflare, so each visitor's own address is known:
       # SAME_CLIENT_IP_HEADER: CF-Connecting-IP
       # The break-glass admin's first password (otherwise one is generated and logged once).
