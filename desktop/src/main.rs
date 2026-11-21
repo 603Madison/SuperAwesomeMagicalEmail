@@ -2,6 +2,7 @@
 
 mod api;
 mod config;
+mod orchestrator;
 mod rt;
 mod ui;
 

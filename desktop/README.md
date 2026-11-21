@@ -7,6 +7,11 @@ only to your server, which holds the mailboxes. The app never sees a mailbox pas
 - **Sign in** with your server's address, then **Sign in with Authentik** (it opens your browser,
   which hands the sign-in back to the app at `samemail://signed-in`), or a password where the
   server allows one.
+- **Signed in already**, where you're signed in to SuperAwesomeMagicalOrchestrator on this
+  computer (SuperAwesomeMagicalLinux has it in Settings): the app asks its agent on the session bus
+  and signs in as you when it starts, and the sign-in page offers **Continue as (you)**. Signing
+  out here stays signed out. Without the orchestrator nothing changes, and nothing more needs
+  installing. Only the sign-in goes through it: never what you're reading.
 - **Every mailbox** your server gives you, laid out as the web app: **All inboxes** together, then
   each account's folders with their unread counts; the list (with search and paging); and the
   message beside it. On a narrow window the folders slide in and the list and message take turns.
@@ -68,7 +73,14 @@ GitHub release. The RPM names Fedora's packages as what it needs (not the librar
 build links), so dnf and rpm-ostree can install it. The version in `Cargo.toml` is the project's
 version (`versionName` in `android/build.gradle.kts`).
 
+Signing in through SuperAwesomeMagicalOrchestrator can be tried for real: on a session bus where
+its agent is signed in, and its server lists `email` at a mail server whose orchestrator address
+is that server, `SAME_ORCHESTRATOR_E2E=1 cargo test signs_in_through_a_real_agent -- --nocapture`
+asks the agent for a ticket, hands it in and reads the mail accounts with the token it gets
+(without the variable the test does nothing).
+
 How it fits together: `src/api.rs` (the server's API, as the web app and phone app use it),
 `src/ui/mod.rs` (the window, new mail and notifications, links the app is opened with),
-`src/ui/login.rs`, `src/ui/mail.rs` (folders, the list and the message), `src/ui/compose.rs`,
+`src/orchestrator.rs` (signing in through SuperAwesomeMagicalOrchestrator's agent on the session
+bus), `src/ui/login.rs`, `src/ui/mail.rs` (folders, the list and the message), `src/ui/compose.rs`,
 `src/ui/prefs.rs` and `src/ui/theme.rs` (the themes, and following SuperAwesomeMagicalLinux's).

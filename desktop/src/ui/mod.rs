@@ -34,6 +34,8 @@ pub struct Ctx {
     /// Kept while the app should go on without a window.
     hold: RefCell<Option<gio::ApplicationHoldGuard>>,
     checking: Cell<bool>,
+    /// Whether the orchestrator's agent was asked for a sign-in since the app started (once, quietly).
+    tried_orchestrator: Cell<bool>,
 }
 
 thread_local! {
@@ -71,7 +73,8 @@ impl Ctx {
     pub fn failed(&self, error: &anyhow::Error) {
         if is_unauthorized(error) {
             self.toast("Your sign-in ended: sign in again");
-            self.sign_out_here();
+            // The server ended it: not a choice to stay signed out.
+            self.sign_out_here(false);
         } else {
             self.toast(&error.to_string());
         }
@@ -89,6 +92,7 @@ impl Ctx {
             config.token = Some(token.clone());
             config.user = Some(user);
             config.new_mail_cursor = None;
+            config.signed_out_on_purpose = false;
             config.save();
         }
         self.api.replace(Some(Api::new(server, Some(token))));
@@ -102,10 +106,12 @@ impl Ctx {
                 let _ = bg(async move { api.logout().await }).await;
             });
         }
-        self.sign_out_here();
+        self.sign_out_here(true);
     }
 
-    fn sign_out_here(&self) {
+    /// [on_purpose]: the person asked to (rather than the server ending the sign-in); then the app
+    /// doesn't sign straight back in through SuperAwesomeMagicalOrchestrator.
+    fn sign_out_here(&self, on_purpose: bool) {
         self.api.replace(None);
         self.mail.replace(None);
         {
@@ -113,9 +119,31 @@ impl Ctx {
             config.token = None;
             config.user = None;
             config.new_mail_cursor = None;
+            if on_purpose {
+                config.signed_out_on_purpose = true;
+            }
             config.save();
         }
         self.toasts.set_child(Some(&login::view()));
+    }
+
+    /// Not signed in, at start: where someone is signed in to SuperAwesomeMagicalOrchestrator on
+    /// this desktop, as them, quietly (once; never after signing out on purpose). Anything else
+    /// leaves the sign-in screen as it is, with no error.
+    fn try_orchestrator(self: &Rc<Self>) {
+        let on_purpose = self.config.borrow().signed_out_on_purpose;
+        if !crate::orchestrator::asks_at_start(self.api().is_some(), on_purpose, self.tried_orchestrator.replace(true)) {
+            return;
+        }
+        let ctx = self.clone();
+        glib::spawn_future_local(async move {
+            if let Ok(signed) = crate::orchestrator::sign_in(Ctx::device_name()).await {
+                // Unless the person signed in by hand meanwhile.
+                if ctx.api().is_none() {
+                    ctx.signed_in(&signed.server, signed.token, signed.user);
+                }
+            }
+        });
     }
 
     fn show_mail(self: &Rc<Self>) {
@@ -357,6 +385,7 @@ pub fn activate(app: &adw::Application) {
         pending_browser_sign_in: RefCell::new(None),
         hold: RefCell::new(None),
         checking: Cell::new(false),
+        tried_orchestrator: Cell::new(false),
     });
     CTX.with(|c| c.replace(Some(context.clone())));
     if background || BACKGROUND_START.with(|b| b.get()) {
@@ -372,7 +401,10 @@ pub fn activate(app: &adw::Application) {
             context.api.replace(Some(Api::new(&server, Some(token))));
             context.show_mail();
         }
-        _ => context.toasts.set_child(Some(&login::view())),
+        _ => {
+            context.toasts.set_child(Some(&login::view()));
+            context.try_orchestrator();
+        }
     }
 
     // New mail, every minute (and when the window comes back to the front).

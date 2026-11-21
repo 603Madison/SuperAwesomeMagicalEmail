@@ -31,6 +31,11 @@ pub struct AuthConfig {
     pub local_login: bool,
     #[serde(default)]
     pub oidc: Option<OidcButton>,
+    /// Whether the server takes SuperAwesomeMagicalOrchestrator's tickets (`POST /api/auth/orchestrator`).
+    /// The app doesn't need to ask first (the ticket names its server); kept in step with the API.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub orchestrator: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -471,6 +476,11 @@ impl Api {
         .await
     }
 
+    /// Hands a sign-in ticket from SuperAwesomeMagicalOrchestrator to the server, for the app's own token.
+    pub async fn orchestrator_sign_in(&self, ticket: &str, device: &str) -> Result<SignedIn> {
+        self.post("/api/auth/orchestrator", orchestrator_sign_in_body(ticket, device)).await
+    }
+
     pub async fn logout(&self) -> Result<serde_json::Value> {
         self.post("/api/auth/logout", json!({})).await
     }
@@ -557,6 +567,11 @@ impl Api {
     }
 }
 
+/// `OrchestratorSignIn`, as the server reads it.
+fn orchestrator_sign_in_body(ticket: &str, device: &str) -> serde_json::Value {
+    json!({ "ticket": ticket, "deviceName": device })
+}
+
 /// The addresses to try for what was typed: the origin, https first.
 pub fn candidates(typed: &str) -> Vec<String> {
     let text = typed.trim();
@@ -605,6 +620,20 @@ pub fn mailto(link: &str) -> (Vec<Address>, String, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_orchestrators_ticket_goes_as_the_server_reads_it() {
+        assert_eq!(
+            orchestrator_sign_in_body("the.ticket.jwt", "Linux desktop (aurora)").to_string(),
+            r#"{"deviceName":"Linux desktop (aurora)","ticket":"the.ticket.jwt"}"#
+        );
+        let config: AuthConfig =
+            serde_json::from_str(r#"{"serverName":"Mail","version":"0.2.0","localLogin":true,"orchestrator":true}"#).unwrap();
+        assert!(config.orchestrator);
+        // An older server says nothing about it.
+        let old: AuthConfig = serde_json::from_str(r#"{"serverName":"Mail","localLogin":true}"#).unwrap();
+        assert!(!old.orchestrator);
+    }
 
     #[test]
     fn addresses_become_origins() {

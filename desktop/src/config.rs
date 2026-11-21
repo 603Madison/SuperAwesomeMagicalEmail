@@ -36,6 +36,9 @@ pub struct Config {
     pub background: bool,
     /// Where the last check for new mail got to (the server's cursor).
     pub new_mail_cursor: Option<String>,
+    /// The person signed out themselves: the app doesn't sign straight back in through
+    /// SuperAwesomeMagicalOrchestrator until they sign in again, by any means.
+    pub signed_out_on_purpose: bool,
 }
 
 impl Default for Config {
@@ -60,6 +63,7 @@ impl Default for Config {
             notify: true,
             background: false,
             new_mail_cursor: None,
+            signed_out_on_purpose: false,
         }
     }
 }

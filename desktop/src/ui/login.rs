@@ -66,6 +66,10 @@ pub fn view() -> gtk::Widget {
         .build();
     toolbar.set_content(Some(&scroll));
 
+    // Above the usual ways, when someone is signed in to SuperAwesomeMagicalOrchestrator on this
+    // desktop: one click, as them.
+    form.append(&orchestrator_offer());
+
     // The server's address.
     let address_group = adw::PreferencesGroup::new();
     let address = adw::EntryRow::builder().title("Server address").build();
@@ -154,6 +158,45 @@ pub fn view() -> gtk::Widget {
     address.connect_entry_activated(move |_| c());
     next.connect_clicked(move |_| connect());
     toolbar.upcast()
+}
+
+/// "Continue as Maddie", shown once the orchestrator's agent says someone is signed in (and not at
+/// all without one). A click asks it for a ticket and hands that to the server; if nothing comes
+/// of it the button goes, and the usual sign-in is left as it was, with no error.
+fn orchestrator_offer() -> gtk::Box {
+    let offer = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(10)
+        .visible(false)
+        .build();
+    let button = gtk::Button::builder().halign(gtk::Align::Center).build();
+    button.add_css_class("suggested-action");
+    button.add_css_class("pill");
+    offer.append(&button);
+    let or = gtk::Label::new(Some("or"));
+    or.add_css_class("login-sub");
+    or.add_css_class("caption");
+    offer.append(&or);
+
+    let (shown, label) = (offer.clone(), button.clone());
+    glib::spawn_future_local(async move {
+        if let Some(text) = crate::orchestrator::status().await.label() {
+            label.set_label(&text);
+            shown.set_visible(true);
+        }
+    });
+    let shown = offer.clone();
+    button.connect_clicked(move |button| {
+        button.set_sensitive(false);
+        let shown = shown.clone();
+        glib::spawn_future_local(async move {
+            match crate::orchestrator::sign_in(Ctx::device_name()).await {
+                Ok(signed) => ctx().signed_in(&signed.server, signed.token, signed.user),
+                Err(_) => shown.set_visible(false),
+            }
+        });
+    });
+    offer
 }
 
 fn show_error(label: &gtk::Label, text: &str) {
