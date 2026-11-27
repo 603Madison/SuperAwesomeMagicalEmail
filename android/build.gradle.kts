@@ -15,8 +15,8 @@ android {
         minSdk = 28
         targetSdk = 36
         // The whole project's version: the server, its container image and the desktop app use it too.
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.1"
     }
 
     // Release builds are signed with the permanent key when it's there (see CLAUDE.md).
