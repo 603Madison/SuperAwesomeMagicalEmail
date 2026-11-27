@@ -1,30 +1,32 @@
 [versions]
-agp = "8.13.2"
-kotlin = "2.2.21"
-coreKtx = "1.17.0"
-activityCompose = "1.11.0"
-lifecycle = "2.9.4"
-navigation = "2.9.6"
-composeBom = "2025.10.01"
-work = "2.11.0"
-datastore = "1.1.7"
-okhttp = "4.12.0"
-serialization = "1.9.0"
-coroutines = "1.10.2"
+agp = "9.5.1"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
+activityCompose = "1.13.0"
+lifecycle = "2.11.0"
+navigation = "2.10.2"
+composeBom = "2026.09.00"
+work = "2.12.0"
+datastore = "1.3.0"
+okhttp = "5.5.1"
+serialization = "1.13.0"
+coroutines = "1.11.0"
 desugar = "2.1.5"
 junit = "4.13.2"
-robolectric = "4.16.1"
-browser = "1.8.0"
+robolectric = "4.18"
+browser = "1.10.0"
 # Server
-ktor = "3.3.3"
-sqliteJdbc = "3.50.3.0"
-nimbusJoseJwt = "10.5"
-logback = "1.5.20"
+ktor = "3.6.1"
+sqliteJdbc = "3.54.1.0"
+nimbusJoseJwt = "10.10"
+logback = "1.6.7"
 # Mail: Jakarta Mail (Eclipse Angus) for IMAP and SMTP, jsoup to make HTML mail safe to show.
 jakartaMail = "2.1.5"
 angusMail = "2.0.5"
-jsoup = "1.21.2"
+jsoup = "1.24.1"
 greenmail = "2.1.15"
+# Security floors for libraries that come in transitively (Ktor 3.3 brings Netty 4.2.7).
+netty = "4.2.20.Final"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -66,6 +68,7 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbusJoseJwt" }
+netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 jakarta-mail-api = { module = "jakarta.mail:jakarta.mail-api", version.ref = "jakartaMail" }
 angus-mail = { module = "org.eclipse.angus:angus-mail", version.ref = "angusMail" }
@@ -74,7 +77,6 @@ greenmail = { module = "com.icegreen:greenmail", version.ref = "greenmail" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

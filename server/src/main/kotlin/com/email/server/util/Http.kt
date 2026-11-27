@@ -60,7 +60,7 @@ suspend fun <T> OkHttpClient.call(request: Request, read: (Response) -> T): T = 
 }
 
 suspend fun OkHttpClient.fetchString(request: Request): String = call(request) { response ->
-    val body = response.body?.string().orEmpty()
+    val body = response.body.string()
     if (!response.isSuccessful) {
         throw HttpException(response.code, "${request.method} ${request.url.encodedPath} failed: HTTP ${response.code} ${body.take(200)}")
     }

@@ -142,7 +142,7 @@ class ServerApi(
         }
 
     private fun <T> parse(response: okhttp3.Response, serializer: KSerializer<T>): T {
-        val text = response.body?.string().orEmpty()
+        val text = response.body.string()
         if (!response.isSuccessful) {
             val message = runCatching { ApiJson.decodeFromString(ErrorBody.serializer(), text).error }.getOrNull()
             throw ServerException(response.code, message ?: "The server answered HTTP ${response.code}")

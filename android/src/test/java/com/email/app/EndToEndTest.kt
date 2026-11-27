@@ -126,7 +126,7 @@ class EndToEndTest {
         val codeResponse = browser.newCall(
             Request.Builder().url("${server.base}/api/auth/app/code").header("X-SAME", "1")
                 .post("""{"challenge":"${SignIn.challenge(verifier)}"}""".toRequestBody(json)).build(),
-        ).execute().use { it.body!!.string() }
+        ).execute().use { it.body.string() }
         val code = Regex("\"code\":\"([^\"]+)\"").find(codeResponse)!!.groupValues[1]
 
         try {
@@ -138,7 +138,7 @@ class EndToEndTest {
         val code2 = browser.newCall(
             Request.Builder().url("${server.base}/api/auth/app/code").header("X-SAME", "1")
                 .post("""{"challenge":"${SignIn.challenge(verifier)}"}""".toRequestBody(json)).build(),
-        ).execute().use { Regex("\"code\":\"([^\"]+)\"").find(it.body!!.string())!!.groupValues[1] }
+        ).execute().use { Regex("\"code\":\"([^\"]+)\"").find(it.body.string())!!.groupValues[1] }
         token = api.exchangeCode(server.base, code2, verifier, "Pixel 9").token
         assertEquals("maddie", api.me().user.username)
         assertEquals(com.email.api.SessionKind.APP, api.me().session.kind)
