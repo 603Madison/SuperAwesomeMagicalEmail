@@ -32,10 +32,11 @@ object OrchestratorLink {
 
     /**
      * The SHA-256 of the certificate SuperAwesomeMagicalOrchestrator's releases are signed with
-     * (lowercase hex, no colons). While this is empty (before its first signed release) nothing is
-     * pinned, and the person confirms the server the first time instead: see [SignIn.Ticket.confirm].
+     * (lowercase hex, no colons): only an app signed with it is listened to. Were this ever empty,
+     * nothing would be pinned, and the person would confirm the server the first time instead: see
+     * [SignIn.Ticket.confirm].
      */
-    val PINNED_CERTIFICATES: Set<String> = emptySet()
+    val PINNED_CERTIFICATES: Set<String> = setOf("8686b8721c2d854e211c2265f46adb9a227a640c45cd0b945eeb968e7f37491a")
 
     sealed interface SignIn {
         /**
