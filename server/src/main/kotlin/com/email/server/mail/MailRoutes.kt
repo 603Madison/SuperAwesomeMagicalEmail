@@ -275,9 +275,9 @@ fun Route.mailRoutes(services: Services) {
                 .build()
             runCatching {
                 services.imageHttp.newCall(request).execute().use { response ->
-                    val type = response.body?.contentType()?.let { "${it.type}/${it.subtype}" }?.lowercase()
+                    val type = response.body.contentType()?.let { "${it.type}/${it.subtype}" }?.lowercase()
                     if (!response.isSuccessful || type == null || type !in INLINE_TYPES) return@use null
-                    val body = response.body!!.byteStream().use { readLimited(it, Links.MAX_IMAGE_BYTES) } ?: return@use null
+                    val body = response.body.byteStream().use { readLimited(it, Links.MAX_IMAGE_BYTES) } ?: return@use null
                     type to body
                 }
             }.getOrNull()
@@ -318,7 +318,7 @@ private suspend fun receiveUploads(services: Services, call: ApplicationCall, us
                 saved += services.uploads.record(user.id, id, part.originalFileName ?: "attachment", part.contentType?.toString() ?: "application/octet-stream", size)
             }
         } finally {
-            part.dispose()
+            part.release()
         }
     }
     if (saved.isEmpty()) throw ApiError.badRequest("No file came with that")
